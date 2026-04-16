@@ -25,9 +25,11 @@ This project includes a GitHub Actions workflow that automatically builds a debu
 3. Build and run the app on an Android device or emulator (API 24+).
 
 ### Note on Environment
-In this repository, the `EnvironmentManager` contains the logic to prepare the directory structure. In a production environment, you would need to:
-1. Provide a hosted `.tar.gz` archive containing cross-compiled versions of `clang`, `python`, and their dependencies (e.g., `libc++`, `libpython`).
-2. Update the `downloadFile` logic in `EnvironmentManager.kt` to point to your hosted archive.
+The IDE bundles the toolchain within the APK's assets (`app/src/main/assets/env`). On first launch, the `EnvironmentManager` extracts these files to the app's internal storage.
+
+In this repository, the assets contain placeholder files. To make the IDE functional, you must:
+1. Replace the files in `app/src/main/assets/env` with real cross-compiled binaries for your target architecture (e.g., aarch64-linux-android).
+2. Ensure `clang++` and `python` are present in the `bin/` subfolder of assets.
 
 ## How to use
 1. Choose your language (C++ or Python) from the top bar.

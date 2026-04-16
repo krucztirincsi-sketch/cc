@@ -18,21 +18,14 @@ class EnvironmentManager(private val context: Context, private val onStatusUpdat
     fun setupEnvironment(onComplete: (Boolean) -> Unit) {
         executor.execute {
             try {
-                onStatusUpdate("Preparing environment...")
-                File(rootDir).mkdirs()
+                onStatusUpdate("Extracting toolchain from assets...")
+                val assetManager = context.assets
+                copyAssets(assetManager, "env", rootDir)
 
-                // In a real app, you would download the boostrap archive here
-                // For example: downloadFile("https://example.com/bootstrap-arch.tar.gz", "bootstrap.tar.gz")
-                // And then extract it to rootDir
-
-                onStatusUpdate("Downloading Clang and Python (Simulated)...")
-                Thread.sleep(2000)
-
-                onStatusUpdate("Extracting components...")
-                Thread.sleep(2000)
-
-                // Create mock binaries for simulation
-                createMockBinaries()
+                // Ensure everything in bin is executable
+                File(rootDir, "bin").listFiles()?.forEach {
+                    it.setExecutable(true)
+                }
 
                 onStatusUpdate("Environment ready.")
                 onComplete(true)
@@ -43,18 +36,33 @@ class EnvironmentManager(private val context: Context, private val onStatusUpdat
         }
     }
 
-    private fun createMockBinaries() {
-        val binDir = File(rootDir, "bin")
-        binDir.mkdirs()
-        // In a real scenario, these would be the actual cross-compiled binaries
-        // For the sake of this project structure, we prepare the paths
-        val clang = File(binDir, "clang++")
-        if (!clang.exists()) clang.createNewFile()
-        clang.setExecutable(true)
+    private fun copyAssets(assetManager: android.content.res.AssetManager, path: String, targetDir: String) {
+        val assets = assetManager.list(path) ?: return
+        if (assets.isEmpty()) {
+            // It's a file
+            copyFile(assetManager, path, targetDir)
+        } else {
+            // It's a directory
+            val dir = File(targetDir)
+            if (!dir.exists()) dir.mkdirs()
+            for (asset in assets) {
+                val newPath = if (path.isEmpty()) asset else "$path/$asset"
+                val newTargetDir = "$targetDir/$asset"
+                copyAssets(assetManager, newPath, newTargetDir)
+            }
+        }
+    }
 
-        val python = File(binDir, "python")
-        if (!python.exists()) python.createNewFile()
-        python.setExecutable(true)
+    private fun copyFile(assetManager: android.content.res.AssetManager, filename: String, targetFile: String) {
+        assetManager.open(filename).use { input ->
+            FileOutputStream(targetFile).use { output ->
+                val buffer = ByteArray(1024)
+                var read: Int
+                while (input.read(buffer).also { read = it } != -1) {
+                    output.write(buffer, 0, read)
+                }
+            }
+        }
     }
 
     fun getExecutablePath(name: String): String {
