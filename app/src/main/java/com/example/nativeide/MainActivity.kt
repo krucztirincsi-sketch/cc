@@ -124,7 +124,8 @@ class MainActivity : AppCompatActivity() {
             tempFile = java.io.File(filesDir, "temp.cpp")
             tempFile.writeText(code)
             appendToTerminal("\n> Compiling and Running C++...")
-            command = "clang++ ${tempFile.absolutePath} -o ${filesDir.absolutePath}/temp && ${filesDir.absolutePath}/temp"
+            val outputExe = java.io.File(filesDir, "temp")
+            command = "clang++ ${tempFile.absolutePath} -o ${outputExe.absolutePath} && chmod 755 ${outputExe.absolutePath} && ${outputExe.absolutePath}"
         } else {
             tempFile = java.io.File(filesDir, "temp.py")
             tempFile.writeText(code)
