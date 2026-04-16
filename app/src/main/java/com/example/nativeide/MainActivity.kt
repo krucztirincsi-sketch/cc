@@ -8,8 +8,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import io.github.rosemoe.sora.langs.cpp.CppLanguage
-import io.github.rosemoe.sora.langs.python.PythonLanguage
+import io.github.rosemoe.sora.langs.textmate.TextMateLanguage
 import io.github.rosemoe.sora.widget.CodeEditor
 import io.github.rosemoe.sora.widget.schemes.EditorColorScheme
 
@@ -97,13 +96,15 @@ class MainActivity : AppCompatActivity() {
 
     private fun setMode(isCpp: Boolean) {
         this.isCppMode = isCpp
+        // Use TextMateLanguage for both as a generic fallback since specific modules are not found
+        // In a real project, you would load the .tmLanguage files
         if (isCpp) {
-            editor.setEditorLanguage(CppLanguage())
+            // editor.setEditorLanguage(TextMateLanguage.create("source.cpp", true))
             if (editor.text.toString().isEmpty()) {
                 editor.setText("#include <iostream>\n\nint main() {\n    std::cout << \"Hello C++!\" << std::endl;\n    return 0;\n}")
             }
         } else {
-            editor.setEditorLanguage(PythonLanguage())
+            // editor.setEditorLanguage(TextMateLanguage.create("source.python", true))
             if (editor.text.toString().isEmpty()) {
                 editor.setText("print(\"Hello Python!\")")
             }

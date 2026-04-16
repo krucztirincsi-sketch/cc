@@ -13,7 +13,7 @@
         android:orientation="horizontal"
         android:padding="8dp"
         android:background="?attr/colorPrimary"
-        app:layout_topToTopOf="parent">
+        app:layout_constraintTop_toTopOf="parent">
 
         <TextView
             android:layout_width="0dp"
@@ -55,8 +55,8 @@
         android:id="@+id/editor"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        app:layout_topToBottom="@id/topBar"
-        app:layout_bottomToTop="@id/guideline" />
+        app:layout_constraintTop_toBottomOf="@id/topBar"
+        app:layout_constraintBottom_toTopOf="@id/guideline" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/guideline"
@@ -70,8 +70,8 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:background="#000000"
-        app:layout_topToBottom="@id/guideline"
-        app:layout_bottomToTopOf="@id/bottomBar">
+        app:layout_constraintTop_toBottomOf="@id/guideline"
+        app:layout_constraintBottom_toTopOf="@id/bottomBar">
 
         <TextView
             android:id="@+id/terminalOutput"
@@ -90,7 +90,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:padding="8dp"
-        app:layout_bottomToBottomOf="parent">
+        app:layout_constraintBottom_toBottomOf="parent">
 
         <EditText
             android:id="@+id/terminalInput"
