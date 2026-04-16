@@ -10,9 +10,4 @@ buildscript {
     }
 }
 
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
+// allprojects repositories removed as they are managed in settings.gradle

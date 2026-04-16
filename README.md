@@ -16,6 +16,9 @@ The IDE is built using Kotlin and follows a modular architecture:
 - `ShellExecutor`: Executes shell commands with correctly configured environment variables (`PATH`, `LD_LIBRARY_PATH`, `DISPLAY`).
 - `GraphicalSurfaceView`: A `SurfaceView` implementation designed to render graphical output from compiled programs.
 
+## CI/CD
+This project includes a GitHub Actions workflow that automatically builds a debug APK on every push to the main branch or feature branches. You can find the generated APKs in the "Actions" tab of the repository under the "Upload APK" step artifacts.
+
 ## Setup & Building
 1. Open the project in **Android Studio**.
 2. Sync the project with Gradle files.
