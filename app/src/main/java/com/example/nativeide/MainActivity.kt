@@ -59,10 +59,8 @@ class MainActivity : AppCompatActivity() {
     private fun setupEditor() {
         editor.colorScheme = EditorColorScheme()
         // Basic configuration
-        editor.setOverScrollEnabled(true)
         editor.isWordwrap = false
-        editor.setPinLineNumber(true)
-        editor.setShowLineNumbers(true)
+        editor.isLineNumberEnabled = true
         editor.tabWidth = 4
     }
 
