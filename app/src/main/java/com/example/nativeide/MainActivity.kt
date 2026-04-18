@@ -17,8 +17,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var editor: CodeEditor
     private lateinit var terminalOutput: TextView
     private lateinit var terminalInput: EditText
-    private lateinit var btnRun: FloatingActionButton
-    private lateinit var toggleGroup: MaterialButtonToggleGroup
+    private lateinit var btnRun: View
+    private lateinit var tvCpp: TextView
+    private lateinit var layoutPython: View
+    private lateinit var tvPython: TextView
 
     private var isCppMode = false
     private lateinit var envManager: EnvironmentManager
@@ -32,7 +34,9 @@ class MainActivity : AppCompatActivity() {
         terminalOutput = findViewById(R.id.terminalOutput)
         terminalInput = findViewById(R.id.terminalInput)
         btnRun = findViewById(R.id.btnRun)
-        toggleGroup = findViewById(R.id.toggleGroup)
+        tvCpp = findViewById(R.id.tvCpp)
+        layoutPython = findViewById(R.id.layoutPython)
+        tvPython = findViewById(R.id.tvPython)
 
         setupEditor()
         setupListeners()
@@ -41,19 +45,44 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread { appendToTerminal(status) }
         }
         shellExecutor = ShellExecutor { output ->
-            runOnUiThread { appendToTerminal(output) }
+            runOnUiThread {
+                terminalOutput.append(output)
+                scrollToBottom()
+            }
         }
 
         if (!envManager.isEnvironmentReady()) {
             envManager.setupEnvironment { success ->
                 if (success) {
-                    runOnUiThread { appendToTerminal("System ready for use.") }
+                    runOnUiThread {
+                        appendToTerminal("System ready for use.")
+                        startShell()
+                    }
                 }
             }
+        } else {
+            startShell()
         }
 
-        // Initial mode
-        setMode(false) // Default to Python
+        // Initial mode - Load from preferences
+        val prefs = getSharedPreferences("NativeIDE", MODE_PRIVATE)
+        isCppMode = prefs.getBoolean("isCppMode", false)
+        val savedCode = prefs.getString("savedCode", "")
+
+        setMode(isCppMode)
+        if (!savedCode.isNullOrEmpty()) {
+            editor.setText(savedCode)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        val prefs = getSharedPreferences("NativeIDE", MODE_PRIVATE)
+        prefs.edit().apply {
+            putBoolean("isCppMode", isCppMode)
+            putString("savedCode", editor.text.toString())
+            apply()
+        }
     }
 
     private fun setupEditor() {
@@ -65,14 +94,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
-        toggleGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
-            if (isChecked) {
-                when (checkedId) {
-                    R.id.btnCpp -> setMode(true)
-                    R.id.btnPython -> setMode(false)
-                }
-            }
-        }
+        tvCpp.setOnClickListener { setMode(true) }
+        layoutPython.setOnClickListener { setMode(false) }
 
         btnRun.setOnClickListener {
             runCode()
@@ -94,71 +117,73 @@ class MainActivity : AppCompatActivity() {
 
     private fun setMode(isCpp: Boolean) {
         this.isCppMode = isCpp
-        // Use TextMateLanguage for both as a generic fallback since specific modules are not found
-        // In a real project, you would load the .tmLanguage files
         if (isCpp) {
-            // editor.setEditorLanguage(TextMateLanguage.create("source.cpp", true))
-            if (editor.text.toString().isEmpty()) {
+            tvCpp.setTextColor(android.graphics.Color.parseColor("#311B92"))
+            tvCpp.setBackgroundResource(R.drawable.bg_toggle_selected)
+            layoutPython.setBackgroundResource(0)
+            tvPython.setTextColor(android.graphics.Color.parseColor("#B39DDB"))
+
+            if (editor.text.toString().isEmpty() || editor.text.toString() == "print(\"Hello Python!\")") {
                 editor.setText("#include <iostream>\n\nint main() {\n    std::cout << \"Hello C++!\" << std::endl;\n    return 0;\n}")
             }
         } else {
-            // editor.setEditorLanguage(TextMateLanguage.create("source.python", true))
-            if (editor.text.toString().isEmpty()) {
+            layoutPython.setBackgroundResource(R.drawable.bg_toggle_selected)
+            tvPython.setTextColor(android.graphics.Color.parseColor("#311B92"))
+            tvCpp.setBackgroundResource(0)
+            tvCpp.setTextColor(android.graphics.Color.parseColor("#B39DDB"))
+
+            if (editor.text.toString().isEmpty() || editor.text.toString().startsWith("#include")) {
                 editor.setText("print(\"Hello Python!\")")
             }
         }
     }
 
-    private fun runCode() {
-        val code = editor.text.toString()
-        val tempFile: java.io.File
-        val command: String
+    private fun startShell() {
         val env = mutableMapOf<String, String>()
-
-        // Add usr/bin to PATH
         val binPath = java.io.File(filesDir, "usr/bin").absolutePath
         env["PATH"] = "$binPath:/system/bin:/system/xbin"
         env["LD_LIBRARY_PATH"] = java.io.File(filesDir, "usr/lib").absolutePath
+        env["HOME"] = filesDir.absolutePath
+        env["TERM"] = "xterm"
+        shellExecutor.startShell(filesDir.absolutePath, env)
+    }
+
+    private fun runCode() {
+        val code = editor.text.toString()
+        val tempFile: java.io.File
 
         if (isCppMode) {
             tempFile = java.io.File(filesDir, "temp.cpp")
             tempFile.writeText(code)
-            appendToTerminal("\n> Compiling and Running C++...")
             val outputExe = java.io.File(filesDir, "temp")
-            command = "clang++ ${tempFile.absolutePath} -o ${outputExe.absolutePath} && chmod 755 ${outputExe.absolutePath} && ${outputExe.absolutePath}"
+            shellExecutor.execute("clang++ ${tempFile.absolutePath} -o ${outputExe.absolutePath} && chmod 755 ${outputExe.absolutePath} && ${outputExe.absolutePath}")
         } else {
             tempFile = java.io.File(filesDir, "temp.py")
             tempFile.writeText(code)
-            appendToTerminal("\n> Running Python...")
-            command = "python ${tempFile.absolutePath}"
+            shellExecutor.execute("python ${tempFile.absolutePath}")
         }
-
-        shellExecutor.execute(command, filesDir.absolutePath, env)
     }
 
     private fun executeCommand(command: String) {
-        appendToTerminal("\n$ $command")
-
-        val env = mutableMapOf<String, String>()
-        val binPath = java.io.File(filesDir, "usr/bin").absolutePath
-        env["PATH"] = "$binPath:/system/bin:/system/xbin"
-        env["LD_LIBRARY_PATH"] = java.io.File(filesDir, "usr/lib").absolutePath
-        env["DISPLAY"] = ":0" // Standard X11 display
-
         if (command.contains("gui") || command.contains("graphics")) {
             val intent = android.content.Intent(this, GraphicsActivity::class.java)
             startActivity(intent)
         } else {
-            shellExecutor.execute(command, filesDir.absolutePath, env)
+            shellExecutor.execute(command)
         }
     }
 
     private fun appendToTerminal(text: String) {
         terminalOutput.append("\n$text")
-        // Auto scroll to bottom
-        val scrollAmount = terminalOutput.layout?.getLineTop(terminalOutput.lineCount) ?: 0
-        if (scrollAmount > terminalOutput.height) {
-            terminalOutput.scrollTo(0, scrollAmount - terminalOutput.height)
+        scrollToBottom()
+    }
+
+    private fun scrollToBottom() {
+        terminalOutput.post {
+            val scrollAmount = terminalOutput.layout?.getLineTop(terminalOutput.lineCount) ?: 0
+            if (scrollAmount > terminalOutput.height) {
+                terminalOutput.scrollTo(0, scrollAmount - terminalOutput.height)
+            }
         }
     }
 }

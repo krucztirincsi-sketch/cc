@@ -24,7 +24,7 @@ class EnvironmentManager(private val context: Context, private val onStatusUpdat
 
                 // Ensure everything in bin is executable
                 File(rootDir, "bin").listFiles()?.forEach {
-                    it.setExecutable(true)
+                    if (it.isFile) it.setExecutable(true)
                 }
 
                 onStatusUpdate("Environment ready.")
